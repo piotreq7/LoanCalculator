@@ -1,0 +1,9 @@
+version: "3"
+services:
+  webserver-pragma:
+    build:
+      context: .
+    container_name: webserver-pragma2
+    restart: 'always'
+    volumes:
+      - .:/var/www/html
