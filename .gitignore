@@ -11,4 +11,5 @@
 
 ###> friends-of-behat/symfony-extension ###
 /behat.yml
+/.idea
 ###< friends-of-behat/symfony-extension ###
