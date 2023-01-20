@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class FeeCalculatorService implements FeeCalculatorInterface
 {
+    const ROUND_TO = 5;
     private FeeCalculatorRepositoryFromCsv $feeCalculatorRepository;
     private ValidatorInterface $validator;
 
@@ -29,18 +30,27 @@ class FeeCalculatorService implements FeeCalculatorInterface
      */
     public function calculate(LoanProposal $application): float
     {
+
         $errors = $this->validator->validate($application);
         if (count($errors)>0) {
             throw $errors;
+            //TODO fix this validation
         }
         $data = $this->feeCalculatorRepository->getStructureByNumberOfMonths($application->term());
         $closestUpperBreakPoint = $this->getClosestUpperBreakPoint($application->amount(),$data);
         $closestLowerBreakPoint = $this->getClosestLowerBreakPoint($application->amount(),$data);
+        if($closestUpperBreakPoint !== $closestLowerBreakPoint){
+            $betweenZeroAndOne = ($application->amount() - $closestLowerBreakPoint->getBreakPoint())
+                /
+                ($closestUpperBreakPoint->getBreakPoint() - $closestLowerBreakPoint->getBreakPoint());
 
-        $betweenZeroAndOne = ($application->amount() - $closestLowerBreakPoint->getBreakPoint())
-            /
-            ($closestUpperBreakPoint->getBreakPoint() - $closestLowerBreakPoint->getBreakPoint());
-         return $closestLowerBreakPoint->getFee() * ( 1 - $betweenZeroAndOne) + $closestUpperBreakPoint->getFee() * $betweenZeroAndOne;
+            $fee =  $closestLowerBreakPoint->getFee() * ( 1 - $betweenZeroAndOne) + $closestUpperBreakPoint->getFee() * $betweenZeroAndOne;
+        } else {
+            $fee = $closestUpperBreakPoint->getFee();
+        }
+
+         $fee = $this->roundFee($application->amount(), $fee, self::ROUND_TO);
+         return round($fee,2);
     }
 
     public function getClosestUpperBreakPoint(float $amount, $data): LoanStructureRow
@@ -81,5 +91,15 @@ class FeeCalculatorService implements FeeCalculatorInterface
             $closestBreakPoint = (new LoanStructureRow)->setBreakPoint(0)->setFee(0);
         }
         return $closestBreakPoint;
+    }
+    public function roundFee( float $amount, float $fee, $roundTo): float
+    {
+        $sum = $amount + $fee;
+        $difference = fmod($sum , $roundTo);
+        if($difference == 0.0){
+            return $fee;
+        }
+        $fee =  ceil($sum / 5) * 5 - $amount;
+        return $fee;
     }
 }

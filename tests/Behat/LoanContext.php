@@ -56,7 +56,7 @@ final class LoanContext implements Context
     {
         $data = $table->getRowsHash();
         /** @var FeeCalculatorService $test */
-        self::$idMap[$result] = $this->feeCalculatorService->calculate(new LoanProposal((int)$data['numberOfMonths'],(int)$data['loanAmount']));
+        self::$idMap[$result] = $this->feeCalculatorService->calculate(new LoanProposal((int)$data['numberOfMonths'],(float)$data['loanAmount']));
     }
 
     /**
@@ -64,7 +64,9 @@ final class LoanContext implements Context
      */
     public function theIsEqual($result, $value)
     {
+
         if(self::$idMap[$result] !== (float)$value){
-            throw new \RuntimeException('Incorect result');
-        }    }
+            throw new \RuntimeException('Expected '.(float)$value.' but got '.self::$idMap[$result]);
+        }
+    }
 }
