@@ -105,4 +105,4 @@ To run tests enter to docker container and run
 ```bash
 vendor/bin/behat
 ```
-all should pass ;)
+all should pass

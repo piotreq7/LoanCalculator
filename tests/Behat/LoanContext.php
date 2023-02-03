@@ -8,6 +8,8 @@ use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use PragmaGoTech\Interview\Model\LoanProposal;
 use PragmaGoTech\Interview\Service\FeeCalculatorService;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -19,44 +21,23 @@ final class LoanContext implements Context
     /** @var KernelInterface */
     private $kernel;
 
-    /** @var FeeCalculatorService */
-    private $feeCalculatorService;
 
-//    /** @var Response|null */
-//    private $response;
-
-    public function __construct(KernelInterface $kernel, FeeCalculatorService $feeCalculatorService)
+    public function __construct(KernelInterface $kernel)
     {
         $this->kernel = $kernel;
-        $this->feeCalculatorService = $feeCalculatorService;
     }
 
-//    /**
-//     * @When a demo scenario sends a request to :path
-//     */
-//    public function aDemoScenarioSendsARequestTo(string $path): void
-//    {
-//        $this->response = $this->kernel->handle(Request::create($path, 'GET'));
-//    }
-//
-//    /**
-//     * @Then the response should be received
-//     */
-//    public function theResponseShouldBeReceived(): void
-//    {
-//        if ($this->response === null) {
-//            throw new \RuntimeException('No response received');
-//        }
-//    }
-
     /**
-     * @Given calculate loan and assign result to :result with data:
+     * @Given calculate loan amount :amount in term :term and assign result to :fee with data
      */
-    public function calculateLoanAndAssignResultToWithData($result, TableNode $table)
+    public function calculateLoanAndAssignResultToWithData(float $amount,  int $term, $fee)
     {
-        $data = $table->getRowsHash();
-        /** @var FeeCalculatorService $test */
-        self::$idMap[$result] = $this->feeCalculatorService->calculate(new LoanProposal((int)$data['numberOfMonths'],(float)$data['loanAmount']));
+        $application = new Application($this->kernel);
+        $command = $application->find('loan:fee:calculate');
+        $commandTester = new CommandTester($command);
+        $commandTester->execute(['amount' => $amount, 'term' => $term]);
+        $output = $commandTester->getDisplay();
+        self::$idMap[$fee] = $output;
     }
 
     /**
@@ -64,9 +45,8 @@ final class LoanContext implements Context
      */
     public function theIsEqual($result, $value)
     {
-
-        if(self::$idMap[$result] !== (float)$value){
-            throw new \RuntimeException('Expected '.(float)$value.' but got '.self::$idMap[$result]);
+        if((string)self::$idMap[$result] !== (string)$value){
+            throw new \RuntimeException('Expected '.(float)$value.' but got '.(float)self::$idMap[$result]);
         }
     }
 }
